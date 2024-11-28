@@ -3,7 +3,7 @@ import type { PoolStorageTransaction } from "@icpswap/types";
 import dayjs from "dayjs";
 
 import { Copy } from "../Copy";
-import { BoxProps } from "../Mui";
+import { BoxProps, useTheme } from "../Mui";
 import { SwapTransactionPriceTip } from "../SwapTransactionPriceTip";
 import { TableRow, BodyCell } from "../Table";
 
@@ -38,11 +38,14 @@ interface TransactionRowProps {
   transaction: PoolStorageTransaction;
   wrapperSx?: BoxProps["sx"];
   className?: BoxProps["className"];
+  onAddressClick?: (address: string) => void;
 }
 
-export function TransactionRow({ transaction, className }: TransactionRowProps) {
+export function TransactionRow({ transaction, className, onAddressClick }: TransactionRowProps) {
+  const theme = useTheme();
+
   return (
-    <TableRow className={className}>
+    <TableRow className={className} borderBottom={`1px solid ${theme.palette.border.level1}`}>
       <BodyCell>{ActionTypeFormat(transaction)}</BodyCell>
 
       <BodyCell>{formatDollarAmount(transaction.amountUSD, 3)}</BodyCell>
@@ -74,9 +77,9 @@ export function TransactionRow({ transaction, className }: TransactionRowProps) 
       </BodyCell>
 
       <BodyCell>
-        <Copy content={transaction.recipient}>
-          <BodyCell color="primary.main">{shorten(transaction.recipient, 8)}</BodyCell>
-        </Copy>
+        <BodyCell color="primary.main" onClick={() => onAddressClick(transaction.recipient)}>
+          {shorten(transaction.recipient, 8)}
+        </BodyCell>
       </BodyCell>
 
       <BodyCell>{dayjs(Number(transaction.timestamp) * 1000).format("YYYY-MM-DD HH:mm:ss")}</BodyCell>

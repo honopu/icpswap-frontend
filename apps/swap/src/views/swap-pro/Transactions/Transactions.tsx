@@ -1,15 +1,18 @@
-import { useState, useMemo } from "react";
-import { Box, Typography, useTheme, Theme, makeStyles } from "components/Mui";
-import { Trans } from "@lingui/macro";
+import { useState, useMemo, useCallback } from "react";
+import { Box, Typography, useTheme, makeStyles } from "components/Mui";
+import { Trans, t } from "@lingui/macro";
 import { enumToString } from "@icpswap/utils";
 import { Header, HeaderCell, SortDirection, LoadingRow, NoData, SimplePagination, TransactionRow } from "@icpswap/ui";
 import { PoolStorageTransaction } from "@icpswap/types";
+import { useTips, MessageTypes } from "hooks/index";
+import copyToClipboard from "copy-to-clipboard";
 
 const useStyles = makeStyles(() => {
   return {
     wrapper: {
       display: "grid",
       gap: "1em",
+      padding: "16px",
       alignItems: "center",
       gridTemplateColumns: "1.5fr repeat(5, 1fr)",
     },
@@ -33,10 +36,10 @@ export default function Transactions({
   hasFilter,
   showedTokens,
 }: TransactionsProps) {
-  const theme = useTheme() as Theme;
-  const [page, setPage] = useState(1);
-
+  const theme = useTheme();
   const classes = useStyles();
+  const [openTip] = useTips();
+  const [page, setPage] = useState(1);
 
   const [sortField, setSortField] = useState<string>("timestamp");
   const [filter, setFilter] = useState<Filter>("all");
@@ -96,82 +99,98 @@ export default function Transactions({
     { key: "removes", value: "Removes" },
   ];
 
+  const handleCopy = useCallback((address: string) => {
+    copyToClipboard(address);
+    openTip(t`Copy success`, MessageTypes.success);
+  }, []);
+
   return (
-    <Box>
-      <Header className={classes.wrapper} onSortChange={handleSortChange} defaultSortFiled={sortField}>
-        <Box>
-          {hasFilter ? (
-            <Box sx={{ display: "flex", gap: "0 10px" }}>
-              {Filters.map((ele) => (
-                <Typography
-                  key={ele.key}
-                  sx={{
-                    color: filter === ele.key ? "#ffffff" : theme.colors.darkPrimary400,
-                    cursor: "pointer",
-                    fontSize: "16px",
-                    "@media(max-width: 640px)": {
-                      fontSize: "12px",
-                    },
-                  }}
-                  onClick={() => handleFilterChange(ele.key)}
-                >
-                  {ele.value}
-                </Typography>
-              ))}
-            </Box>
-          ) : (
-            <Typography sx={{ color: theme.colors.darkPrimary400 }}>#</Typography>
-          )}
-        </Box>
-
-        <HeaderCell field="amountUSD" isSort>
-          <Trans>Total Value</Trans>
-        </HeaderCell>
-
-        <HeaderCell field="amountToken0" isSort>
-          <Trans>Token Amount</Trans>
-        </HeaderCell>
-
-        <HeaderCell field="amountToken1" isSort>
-          <Trans>Token Amount</Trans>
-        </HeaderCell>
-
-        <HeaderCell field="sender" isSort>
-          <Trans>Account</Trans>
-        </HeaderCell>
-
-        <HeaderCell field="timestamp" isSort>
-          <Trans>Time</Trans>
-        </HeaderCell>
-      </Header>
-
-      {!loading
-        ? (sortedTransactions ?? []).map((transaction, index) => (
-            <TransactionRow
-              key={`${String(transaction.timestamp)}_${index}`}
+    <Box sx={{ width: "100%" }}>
+      <Box sx={{ width: "100%", overflow: "auto" }}>
+        <Box sx={{ minWidth: "1026px" }}>
+          <Box>
+            <Header
               className={classes.wrapper}
-              transaction={transaction}
-            />
-          ))
-        : null}
+              onSortChange={handleSortChange}
+              defaultSortFiled={sortField}
+              borderBottom={`1px solid ${theme.palette.border.level1}`}
+            >
+              <Box>
+                {hasFilter ? (
+                  <Box sx={{ display: "flex", gap: "0 10px" }}>
+                    {Filters.map((ele) => (
+                      <Typography
+                        key={ele.key}
+                        sx={{
+                          color: filter === ele.key ? "#ffffff" : theme.colors.darkPrimary400,
+                          cursor: "pointer",
+                          fontSize: "16px",
+                          "@media(max-width: 640px)": {
+                            fontSize: "12px",
+                          },
+                        }}
+                        onClick={() => handleFilterChange(ele.key)}
+                      >
+                        {ele.value}
+                      </Typography>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography sx={{ color: theme.colors.darkPrimary400 }}>#</Typography>
+                )}
+              </Box>
 
-      {(sortedTransactions ?? []).length === 0 && !loading ? <NoData /> : null}
+              <HeaderCell field="amountUSD" isSort>
+                <Trans>Total Value</Trans>
+              </HeaderCell>
 
-      {loading ? (
-        <Box sx={{ padding: "24px" }}>
-          <LoadingRow>
-            <div />
-            <div />
-            <div />
-            <div />
-            <div />
-            <div />
-            <div />
-            <div />
-          </LoadingRow>
+              <HeaderCell field="amountToken0" isSort>
+                <Trans>Token Amount</Trans>
+              </HeaderCell>
+
+              <HeaderCell field="amountToken1" isSort>
+                <Trans>Token Amount</Trans>
+              </HeaderCell>
+
+              <HeaderCell field="sender" isSort>
+                <Trans>Account</Trans>
+              </HeaderCell>
+
+              <HeaderCell field="timestamp" isSort>
+                <Trans>Time</Trans>
+              </HeaderCell>
+            </Header>
+
+            {!loading
+              ? (sortedTransactions ?? []).map((transaction, index) => (
+                  <TransactionRow
+                    key={`${String(transaction.timestamp)}_${index}`}
+                    className={classes.wrapper}
+                    transaction={transaction}
+                    onAddressClick={handleCopy}
+                  />
+                ))
+              : null}
+
+            {(sortedTransactions ?? []).length === 0 && !loading ? <NoData /> : null}
+
+            {loading ? (
+              <Box sx={{ padding: "24px" }}>
+                <LoadingRow>
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                </LoadingRow>
+              </Box>
+            ) : null}
+          </Box>
         </Box>
-      ) : null}
-
+      </Box>
       <Box mt="20px">
         {!loading && !!filteredTransactions?.length ? (
           <SimplePagination
